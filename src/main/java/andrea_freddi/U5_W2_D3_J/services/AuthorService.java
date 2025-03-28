@@ -16,14 +16,19 @@ import java.util.UUID;
 
 @Service
 public class AuthorService {
-
     @Autowired
     private AuthorsRepository authorsRepository;
 
     public Author save(AuthorsPayload author) {
-        Author newAuthor = new Author("https://ui-avatars.com/api/?name=" + author.getName() + "+" + author.getSurname(), author.getDateOfBirth(), author.getEmail(), author.getName(), author.getSurname());
-        authors.add(newAuthor);
-        return newAuthor;
+        authorsRepository.findByEmail(author.getEmail()).ifPresent(
+                a -> {
+                    throw new BadRequestException("Email " + author.getEmail() + " già in uso");
+                }
+        );
+        Author newAuthor = new Author("https://ui-avatars.com/api/?name=" + author.getName()
+                + "+" + author.getSurname(), author.getDateOfBirth(), author.getEmail(),
+                author.getName(), author.getSurname());
+        return authorsRepository.save(newAuthor);
     }
 
     public Page<Author> getAuthors(int page, int size, String sortBy) {
@@ -33,46 +38,31 @@ public class AuthorService {
     }
 
     public Author findById(UUID id) {
-        Author found = null;
-        for (Author author : authors) {
-            if (author.getId().equals(id))
-                found = author;
-        }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        return found;
+        return this.authorsRepository.findById(id).orElseThrow(
+                () -> new NotFoundException(id)
+        );
     }
 
     public void findByIdAndDelete(UUID id) {
-        Author found = null;
-        for (Author author : authors) {
-            if (author.getId().equals(id))
-                found = author;
-        }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        authors.remove(found);
+        Author found = this.findById(id);
+        this.authorsRepository.delete(found);
     }
 
     public Author findByIdAndUpdate(UUID id, AuthorsPayload author) {
-        Author found = null;
-        for (Author currentAuthor : authors) {
-            if (currentAuthor.getId().equals(id)) {
-                found = currentAuthor;
-                if (!found.getEmail().equals(author.getEmail())) {
-                    for (Author current : authors)
-                        if (current.getEmail().equals(author.getEmail()))
-                            throw new BadRequestException("Email + " + author.getEmail() + " già in uso");
-                }
-                found.setName(author.getName());
-                found.setSurname(author.getSurname());
-                found.setEmail(author.getEmail());
-                found.setDateOfBirth(author.getDateOfBirth());
-                found.setAvatar("https://ui-avatars.com/api/?name=" + author.getName() + "+" + author.getSurname());
-            }
+        Author found = this.findById(id);
+        if (!found.getEmail().equals(author.getEmail())) {
+            this.authorsRepository.findByEmail(author.getEmail()).ifPresent(
+                    a -> {
+                        throw new BadRequestException("Email " + author.getEmail() + " già in uso");
+                    }
+            );
         }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        return found;
+        found.setName(author.getName());
+        found.setSurname(author.getSurname());
+        found.setEmail(author.getEmail());
+        found.setDateOfBirth(author.getDateOfBirth());
+        found.setAvatar("https://ui-avatars.com/api/?name=" + author.getName() + "+" + author.getSurname());
+
+        return this.authorsRepository.save(found);
     }
 }

@@ -1,5 +1,6 @@
 package andrea_freddi.U5_W2_D3_J.services;
 
+import andrea_freddi.U5_W2_D3_J.entities.Author;
 import andrea_freddi.U5_W2_D3_J.entities.Blogpost;
 import andrea_freddi.U5_W2_D3_J.exceptions.NotFoundException;
 import andrea_freddi.U5_W2_D3_J.payloads.BlogpostsPayload;
@@ -17,11 +18,18 @@ import java.util.UUID;
 public class BlogpostService {
     @Autowired
     private BlogpostsRepository blogpostsRepository;
+    @Autowired
+    private AuthorService authorService;
 
     public Blogpost save(BlogpostsPayload blogpost) {
-        Blogpost newBlogpost = new Blogpost(blogpost.getCategory(), blogpost.getContent(), "https://picsum.photos/200/300", blogpost.getReadingTime(), blogpost.getTitle());
-        blogposts.add(newBlogpost);
-        return newBlogpost;
+        Author found = this.authorService.findById(blogpost.getAuthor_id());
+        if (found == null)
+            throw new NotFoundException(String.valueOf(blogpost.getAuthor_id()));
+        Blogpost newBlogpost = new Blogpost(blogpost.getCategory(), blogpost.getContent(),
+                "https://picsum.photos/200/300", blogpost.getReadingTime(),
+                blogpost.getTitle());
+        newBlogpost.setAuthor(found);
+        return blogpostsRepository.save(newBlogpost);
     }
 
     public Page<Blogpost> getBlogposts(int page, int size, String sortBy) {
@@ -31,39 +39,21 @@ public class BlogpostService {
     }
 
     public Blogpost findById(UUID id) {
-        Blogpost found = null;
-        for (Blogpost blogpost : blogposts) {
-            if (blogpost.getId().equals(id))
-                found = blogpost;
-        }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        return found;
+        return this.blogpostsRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(String.valueOf(id)));
     }
 
     public void findByIdAndDelete(UUID id) {
-        Blogpost found = null;
-        for (Blogpost blogpost : blogposts) {
-            if (blogpost.getId().equals(id))
-                found = blogpost;
-        }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        blogposts.remove(found);
+        Blogpost found = this.findById(id);
+        this.blogpostsRepository.delete(found);
     }
 
     public Blogpost findByIdAndUpdate(UUID id, BlogpostsPayload blogpost) {
-        Blogpost found = null;
-        for (Blogpost currentBlogpost : blogposts) {
-            if (currentBlogpost.getId().equals(id)) {
-                found = currentBlogpost;
-                found.setCategory(blogpost.getCategory());
-                found.setContent(blogpost.getContent());
-                found.setReadingTime(blogpost.getReadingTime());
-            }
-        }
-        if (found == null)
-            throw new NotFoundException(String.valueOf(id));
-        return found;
+        Blogpost found = this.findById(id);
+        found.setCategory(blogpost.getCategory());
+        found.setContent(blogpost.getContent());
+        found.setReadingTime(blogpost.getReadingTime());
+
+        return this.blogpostsRepository.save(found);
     }
 }

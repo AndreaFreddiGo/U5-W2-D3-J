@@ -1,5 +1,6 @@
 package andrea_freddi.U5_W2_D3_J.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,8 +32,9 @@ public class Author {
     private String avatar;
 
     @OneToMany(mappedBy = "author")
+    @JsonIgnore
     private List<Blogpost> blogpostsList;
-
+    
     public Author(String avatar, String dateOfBirth, String email, String name, String surname) {
         this.avatar = avatar;
         this.dateOfBirth = dateOfBirth;
